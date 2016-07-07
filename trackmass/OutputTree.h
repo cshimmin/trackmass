@@ -8,6 +8,8 @@
 class OutputTree : public TTree {
 public:
   OutputTree();
+
+  void add_float(const std::string& name, float val);
   
   void add_photon_type(const std::string& name);
 
@@ -25,6 +27,8 @@ public:
   void clear();
   
 private:
+  std::map<std::string, float* > float_vars;
+
   std::map<std::string, std::vector<float> > jet_vars;
   std::set<std::string> jet_names;
 
