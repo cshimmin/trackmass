@@ -2,6 +2,7 @@
 
 #include "xAODRootAccess/Init.h"
 #include "xAODRootAccess/TEvent.h"
+#include "xAODEventInfo/EventInfo.h"
 #include "xAODTracking/VertexContainer.h"
 #include "xAODTracking/TrackParticleContainer.h"
 #include "xAODJet/JetContainer.h"
@@ -41,9 +42,11 @@ bool is_pv_track(const xAOD::TrackParticle* trk, const xAOD::Vertex* pv) {
 }
 
 void process_event(xAOD::TEvent* evt, OutputTree* out) {
-  //const xAOD::EventInfo* event_info = nullptr;
-  //evt->retrieve(event_info, "EventInfo");
-  
+  const xAOD::EventInfo* event_info = nullptr;
+  evt->retrieve(event_info, "EventInfo");
+
+  float wt = event_info->mcEventWeight();
+  out->add_float("evt_wt", wt);
   
   const xAOD::PhotonContainer* photons(nullptr);
   evt->retrieve(photons, "Photons");
