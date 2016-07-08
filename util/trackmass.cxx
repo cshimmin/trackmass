@@ -202,6 +202,7 @@ void process_event(xAOD::TEvent* evt, OutputTree* out) {
 
   cout << "There are " << fatjets->size() << " fatjets" << endl;
   int nkeep = 0;
+  std::vector<float> ta_mass;
   for (auto j : *fatjets) {
     if (ph0_v.DeltaR(j->p4()) < 0.5) { continue; }
     out->add_jet("fj", j->p4());
@@ -219,8 +220,10 @@ void process_event(xAOD::TEvent* evt, OutputTree* out) {
     out->add_jet("gaNolim", tsum);
     if (ntrk>1) {
       out->add_jet("ga", tsum);
+      ta_mass.push_back(tsum.M() / tsum.Pt() * j->pt());
     }
   }
+  out->add_floats("ga_mTA", ta_mass);
   cout << "Kept " << nkeep << " fatjets." << endl;
 
   const xAOD::JetContainer* fatjets_truth(nullptr);
