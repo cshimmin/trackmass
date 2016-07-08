@@ -395,7 +395,6 @@ int main(int argc, char **argv) {
     h_nevt_total_wt->Fill(0., nevt_total_wt);
     cout << "Total events:    " << nevt_total << endl;
     cout << "Weighted events: " << nevt_total_wt << endl;
-    continue;
 
     int nevt = evt->getEntries();
     cout << nevt << " entries in file." << endl;
