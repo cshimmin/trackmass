@@ -322,22 +322,36 @@ void process_event(xAOD::TEvent* evt, OutputTree* out) {
 }
 
 int main(int argc, char **argv) {
-  int nlim = 500;
-  
-  std::string input_filename;
-  std::string output_filename = "output.root";
-  if (argc < 2) {
-    std::cerr << "Please give a filename!" << endl;
-    cout << "Usage: " << argv[0] << " input_file [output_file [max_events]]" << endl;
+  std::string output_filename;
+  std::vector<std::string> input_files;
+  if (argc < 3) {
+    cerr << "Please give a filename!" << endl;
+    cout << "Usage: " << argv[0] << "output_file input_file[,input_file,...]" << endl;
     return 1;
-  } else {
-    input_filename = argv[1];
   }
-  if (argc > 2) {
-    output_filename = argv[2];
+
+  output_filename = argv[1];
+
+  std::string firstfile = argv[2];
+  if (firstfile.find(",") != std::string::npos) {
+    size_t pos = 0;
+    while ( (pos = firstfile.find(",")) != std::string::npos) {
+      input_files.push_back(firstfile.substr(0, pos));
+      firstfile.erase(0, pos + 1);
+    }
+    if (firstfile.size() > 0) {
+      input_files.push_back(firstfile);
+    }
   }
-  if (argc > 3) {
-    nlim = atoi(argv[3]);
+  else {
+    for (int i = 2; i < argc; ++i) {
+      input_files.push_back(argv[i]);
+    }
+  }
+
+  cout << "Listing input files:" << endl;
+  for (auto s : input_files) {
+    cout << "    " << s << endl;
   }
 
   cout << "Initializing xAOD..." << endl;
