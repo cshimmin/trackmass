@@ -2,6 +2,7 @@
 
 #include "xAODRootAccess/Init.h"
 #include "xAODRootAccess/TEvent.h"
+#include "xAODCutFlow/CutBookkeeperContainer.h"
 #include "xAODEventInfo/EventInfo.h"
 #include "xAODTracking/VertexContainer.h"
 #include "xAODTracking/TrackParticleContainer.h"
@@ -14,10 +15,12 @@
 #include <fastjet/tools/Filter.hh>
 
 #include "TFile.h"
+#include "TH1F.h"
 
 #include "trackmass/OutputTree.h"
 
 using std::cout;
+using std::cerr;
 using std::endl;
 
 const xAOD::Vertex* get_pv(xAOD::TEvent* evt) {
@@ -42,7 +45,7 @@ bool is_pv_track(const xAOD::TrackParticle* trk, const xAOD::Vertex* pv) {
 }
 
 void process_event(xAOD::TEvent* evt, OutputTree* out) {
-  const xAOD::EventInfo* event_info = nullptr;
+  const xAOD::EventInfo* event_info(nullptr);
   evt->retrieve(event_info, "EventInfo");
 
   float wt = event_info->mcEventWeight();
@@ -181,18 +184,6 @@ void process_event(xAOD::TEvent* evt, OutputTree* out) {
     out->add_jet("tj60", j);
   }
 
-  /*
-  for (auto j : trkjets15) {
-    out->j15_pt.push_back(j.pt());
-    out->j15_m.push_back(j.pt());
-  }
-  for (auto j : trkjets60) {
-    out->j60_pt.push_back(j.pt());
-    out->j60_m.push_back(j.pt());
-  }
-  */
-
-  
   const xAOD::JetContainer* fatjets(nullptr);
   evt->retrieve(fatjets, "AntiKt10LCTopoTrimmedPtFrac5SmallR20Jets");
 
@@ -316,15 +307,9 @@ void process_event(xAOD::TEvent* evt, OutputTree* out) {
   evt->retrieve(empflow, "AntiKt10EMPFlowTrimmedPtFrac5SmallR20Jets");
   evt->retrieve(emcpflow, "AntiKt10EMCPFlowTrimmedPtFrac5SmallR20Jets");
 
-  //xAOD::JetContainer empflowOR, emcpflowOR;
   std::vector<const xAOD::Jet*> empflowOR, emcpflowOR;
-  //for (auto j : *empflow) { empflowOR.push_back(j); }
-  //for (auto j : *emcpflow) { emcpflowOR.push_back(j); }
 
-
-  //std::remove_if(empflowOR.begin(), empflowOR.end(), jet_overlaps_photon);
   std::remove_copy_if(empflow->begin(), empflow->end(), std::back_inserter(empflowOR), jet_overlaps_photon);
-  //std::remove_if(emcpflowOR.begin(), emcpflowOR.end(), jet_overlaps_photon);
   std::remove_copy_if(emcpflow->begin(), emcpflow->end(), std::back_inserter(emcpflowOR), jet_overlaps_photon);
 
   out->add_jets("empf", empflowOR);
@@ -358,30 +343,67 @@ int main(int argc, char **argv) {
   cout << "Initializing xAOD..." << endl;
   xAOD::Init();
 
-  cout << "Opening file..." << endl;
-  TFile *input_file = TFile::Open(input_filename.c_str());
+  TFile* out_file = new TFile(output_filename.c_str(), "recreate");
+  out_file->cd();
+  OutputTree* out_tree = new OutputTree();
+  TH1F* h_nevt_total = new TH1F("nevt_total", "nevt_total", 1, 0, 1);
+  TH1F* h_nevt_total_wt = new TH1F("nevt_total_wt", "nevt_total_wt", 1, 0, 1);
 
   cout << "Creating TEvent..." << endl;
-  xAOD::TEvent *evt = new xAOD::TEvent(input_file);
+  xAOD::TEvent *evt = new xAOD::TEvent();
 
-  int nevt = evt->getEntries();
+  int itotal = 0;
+  for (auto fname : input_files) {
+    cout << "Opening file: " << fname << endl;
+    TFile *input_file = TFile::Open(fname.c_str());
 
-  TFile* out_file = new TFile(output_filename.c_str(), "recreate");
-  OutputTree* out_tree = new OutputTree();
 
-  for (int i = 0; i < nevt; ++i) {
-    if (nlim>0 && i>nlim) break;
-    cout << "======= Event " << i << " =======" << endl;
+    cout << "Connecting TEvent to file..." << endl;
+    evt->readFrom(input_file);
 
-    out_tree->clear();
-    evt->getEntry(i);
-    process_event(evt, out_tree);
+    cout << "Grabbing MetaData..." << endl;
+    const xAOD::CutBookkeeperContainer* cuts(nullptr);
+    evt->retrieveMetaInput(cuts, "CutBookkeepers");
+    cout << "Found " << cuts->size() << " cutbookkeepers." << endl;
+    float nevt_total = -1;
+    float nevt_total_wt = -1;
+    for (auto cb : *cuts) {
+      if (cb->inputStream() != "StreamDAOD_JETM8") continue;
+      if (cb->name() != "AllExecutedEvents") continue;
+      nevt_total = cb->nAcceptedEvents();
+      nevt_total_wt = cb->sumOfEventWeights();
+    }
+    if ( (nevt_total<0) || (nevt_total_wt<0) ) {
+      cerr << "Invalid event counts found!!! Skipping file." << endl;
+      continue;
+    }
+    h_nevt_total->Fill(0., nevt_total);
+    h_nevt_total_wt->Fill(0., nevt_total_wt);
+    cout << "Total events:    " << nevt_total << endl;
+    cout << "Weighted events: " << nevt_total_wt << endl;
+    continue;
 
-    cout << "========================" << endl << endl;
+    int nevt = evt->getEntries();
+    cout << nevt << " entries in file." << endl;
+    for (int i = 0; i < nevt; ++i) {
+      itotal++;
+      cout << "======= Event " << itotal << " =======" << endl;
+
+      out_tree->clear();
+      evt->getEntry(i);
+      process_event(evt, out_tree);
+
+      cout << "========================" << endl << endl;
+    }
+
+    input_file->Close();
   }
 
+  out_file->cd();
   out_tree->Write();
-  //out_file->Write();
+  h_nevt_total->Write();
+  h_nevt_total_wt->Write();
+  
   out_file->Close();
 
   return 0;
