@@ -23,6 +23,19 @@ void OutputTree::add_float(const std::string& name, float val) {
   *(float_vars[name]) = val;
 }
 
+void OutputTree::add_floats(const std::string& name, const std::vector<float>& vals) {
+  if (floats_vars.count(name) == 0) {
+    TBranch* b = Branch(name.c_str(), &floats_vars[name]);
+
+    int n_entries = GetEntries();
+    for (int i = 0; i < n_entries; ++i) {
+      b->Fill();
+    }
+  }
+
+  floats_vars[name] = vals;
+}
+
 void OutputTree::add_photon_type(const std::string& name) {
   if (ph_names.count(name) != 0) return;
 
@@ -112,6 +125,10 @@ void OutputTree::add_jets(const std::string& name, const std::vector<const xAOD:
 void OutputTree::clear() {
   for (auto &p : float_vars) {
     *(p.second) = 0;
+  }
+
+  for (auto &p : floats_vars) {
+    p.second.clear();
   }
 
   for (auto &p : ph_vars) {

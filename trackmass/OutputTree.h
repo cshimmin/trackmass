@@ -10,6 +10,8 @@ public:
   OutputTree();
 
   void add_float(const std::string& name, float val);
+
+  void add_floats(const std::string& name, const std::vector<float>& vals);
   
   void add_photon_type(const std::string& name);
 
@@ -28,6 +30,7 @@ public:
   
 private:
   std::map<std::string, float* > float_vars;
+  std::map<std::string, std::vector<float> > floats_vars;
 
   std::map<std::string, std::vector<float> > jet_vars;
   std::set<std::string> jet_names;
