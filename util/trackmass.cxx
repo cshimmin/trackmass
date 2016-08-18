@@ -17,7 +17,7 @@
 #include "TFile.h"
 #include "TH1F.h"
 
-#include "trackmass/OutputTree.h"
+#include "OutputTree/OutputTree.h"
 
 using std::cout;
 using std::cerr;
@@ -49,7 +49,7 @@ void process_event(xAOD::TEvent* evt, OutputTree* out) {
   evt->retrieve(event_info, "EventInfo");
 
   float wt = event_info->mcEventWeight();
-  out->add_float("evt_wt", wt);
+  out->add_scalar("evt_wt", wt);
   
   const xAOD::PhotonContainer* photons(nullptr);
   evt->retrieve(photons, "Photons");
@@ -214,7 +214,7 @@ void process_event(xAOD::TEvent* evt, OutputTree* out) {
       ta_mass.push_back(tsum.M() / tsum.Pt() * j->pt());
     }
   }
-  out->add_floats("ga_mTA", ta_mass);
+  out->add_vector("ga_mTA", ta_mass);
   cout << "Kept " << nkeep << " fatjets." << endl;
 
   const xAOD::JetContainer* fatjets_truth(nullptr);
@@ -359,7 +359,7 @@ int main(int argc, char **argv) {
 
   TFile* out_file = new TFile(output_filename.c_str(), "recreate");
   out_file->cd();
-  OutputTree* out_tree = new OutputTree();
+  OutputTree* out_tree = new OutputTree("tracks");
   TH1F* h_nevt_total = new TH1F("nevt_total", "nevt_total", 1, 0, 1);
   TH1F* h_nevt_total_wt = new TH1F("nevt_total_wt", "nevt_total_wt", 1, 0, 1);
 
