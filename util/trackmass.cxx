@@ -326,7 +326,7 @@ int main(int argc, char **argv) {
   std::vector<std::string> input_files;
   if (argc < 3) {
     cerr << "Please give a filename!" << endl;
-    cout << "Usage: " << argv[0] << "output_file input_file[,input_file,...]" << endl;
+    cout << "Usage: " << argv[0] << " output_file input_file[,input_file,...]" << endl;
     return 1;
   }
 
@@ -334,6 +334,7 @@ int main(int argc, char **argv) {
 
   std::string firstfile = argv[2];
   if (firstfile.find(",") != std::string::npos) {
+    // parse comma-separated file list
     size_t pos = 0;
     while ( (pos = firstfile.find(",")) != std::string::npos) {
       input_files.push_back(firstfile.substr(0, pos));
@@ -344,6 +345,7 @@ int main(int argc, char **argv) {
     }
   }
   else {
+    // read space-delimited file list
     for (int i = 2; i < argc; ++i) {
       input_files.push_back(argv[i]);
     }
